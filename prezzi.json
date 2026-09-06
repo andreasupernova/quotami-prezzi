@@ -327,9 +327,11 @@ label{
 .result-label::before{content:'●';font-size:8px;opacity:.7}
 .result-value{
   font-family:'DM Serif Display',serif;
-  font-size:42px;color:var(--text);letter-spacing:-1.5px;line-height:1;
-  text-shadow:0 0 40px rgba(56,242,60,.15);
+  font-size:52px;color:var(--green);letter-spacing:-1.5px;line-height:1;
+  text-shadow:0 0 30px rgba(56,242,60,.32), 0 0 6px rgba(56,242,60,.22);
+  animation:valuePop .55s cubic-bezier(.2,.7,.2,1) both;
 }
+@keyframes valuePop{from{transform:scale(.94);opacity:.35}to{transform:scale(1);opacity:1}}
 .result-property{
   font-size:13px;color:var(--muted);margin-top:8px;font-weight:300;
 }
@@ -385,6 +387,68 @@ label{
 }
 .step-dot.active{background:var(--green);box-shadow:0 0 6px rgba(56,242,60,.5)}
 .step-dot.done{background:rgba(56,242,60,.4)}
+
+/* ── COMUNE SEARCH (come app) ── */
+.comune-search-wrap .field-control{cursor:text}
+.search-ico{flex:none;margin-left:14px;opacity:.9}
+.comune-search-wrap .field-control input{padding-left:10px;cursor:text}
+.search-results{
+  position:absolute;top:100%;left:0;right:0;z-index:40;margin-top:6px;
+  background:var(--surface3);border:1px solid var(--border);
+  border-radius:var(--radius-sm);max-height:300px;overflow:auto;display:none;
+  box-shadow:0 16px 44px rgba(0,0,0,.55);
+}
+.search-results.open{display:block}
+.search-item{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);
+}
+.search-item:last-child{border-bottom:0}
+.search-item:hover,.search-item.active{background:var(--green-dim)}
+.search-item .si-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.search-item .si-c{color:var(--text);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-item .si-loc{color:var(--muted);font-size:11.5px}
+.search-item .si-pz{color:var(--green);font-size:12px;font-weight:600;white-space:nowrap}
+.search-empty{padding:14px;color:var(--muted);font-size:13px;text-align:center}
+.or-sep{display:flex;align-items:center;gap:12px;margin:16px 0 8px}
+.or-sep::before,.or-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.or-sep span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+
+/* ── RESULT MODE: schermata risultato che sostituisce il wizard (come app) ── */
+.wizard.result-mode .progress-header,
+.wizard.result-mode .step-title-bar,
+.wizard.result-mode .fields-area,
+.wizard.result-mode .nav-bar{ display:none !important; }
+.wizard.result-mode .result-panel{ text-align:center; padding:26px 8px 6px; }
+.wizard.result-mode .result-label{ justify-content:center; }
+.wizard.result-mode .result-property{ text-align:center; }
+.result-summary{ display:none; }
+.wizard.result-mode .result-summary{
+  display:block; margin:22px 0 6px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); overflow:hidden;
+}
+.result-summary .rs-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.result-summary .rs-row:last-child{ border-bottom:0; }
+.result-summary .rs-k{ color:var(--muted); font-size:12.5px; }
+.result-summary .rs-v{ color:var(--text); font-size:14px; font-weight:600; text-align:right; }
+.result-disclaimer{ display:none; }
+.wizard.result-mode .result-disclaimer{
+  display:block; margin-top:14px; color:var(--muted2);
+  font-size:11.5px; line-height:1.55; text-align:center; padding:0 8px;
+}
+.result-actions{ display:none; }
+.wizard.result-mode .result-actions{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+.result-actions .btn{ width:100%; justify-content:center; }
+.btn-text{
+  background:transparent; border:0; color:var(--muted);
+  font-family:'DM Sans',sans-serif; font-size:14px; padding:10px; cursor:pointer;
+  transition:color var(--transition);
+}
+.btn-text:hover{ color:var(--text); }
 </style>
 </head>
 <body>
@@ -434,6 +498,10 @@ label{
       <div class="result-property" id="resultProperty"></div>
     </div>
 
+    <!-- RIEPILOGO (result mode) -->
+    <div class="result-summary" id="resultSummary"></div>
+    <div class="result-disclaimer">Stima automatizzata basata sui dati inseriti. Non sostituisce una perizia immobiliare professionale.</div>
+
     <!-- PDF MSG placeholder -->
     <div id="msg-pdf-warning" style="display:none"></div>
 
@@ -441,6 +509,12 @@ label{
     <button id="btn-report" onclick="scaricaReport()" style="display:none">
       <span>⬇</span> Scarica Report PDF
     </button>
+
+    <!-- AZIONI (result mode) -->
+    <div class="result-actions" id="resultActions">
+      <button class="btn btn-ghost" onclick="modificaDati()"><span class="btn-icon">←</span> Modifica dati</button>
+      <button class="btn-text" onclick="nuovaValutazione()">Inizia una nuova valutazione</button>
+    </div>
 
     <!-- NAV -->
     <div class="nav-bar">
@@ -8365,6 +8439,15 @@ function renderStep0() {
       <label for="nome_proprieta">Nome / Riferimento Proprietà</label>
       <input class="hero-input" type="text" id="nome_proprieta" placeholder="Es. Villa Rossi — Via Roma 12, Milano">
     </div>
+    <div class="field-group field-full comune-search-wrap" style="margin-top:8px;position:relative">
+      <label for="comuneSearch">Cerca comune</label>
+      <div class="field-control">
+        <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#7a7d79" stroke-width="2"/><path d="M20 20L16.65 16.65" stroke="#7a7d79" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" id="comuneSearch" autocomplete="off" placeholder="Digita il nome del comune…">
+      </div>
+      <div class="search-results" id="comuneSearchResults" role="listbox"></div>
+    </div>
+    <div class="or-sep field-full"><span>oppure seleziona</span></div>
     <div class="location-grid field-full" style="margin-top:8px">
       <div class="field-group">
         <label for="regione">Regione</label>
@@ -8634,6 +8717,72 @@ function prevStep() {
 // ═══════════════════════════════════════════
 // LOCATION SELECTS
 // ═══════════════════════════════════════════
+let _comuneIndex = null;
+function _normComune(s){ return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function buildComuneIndex(){
+  if (_comuneIndex) return _comuneIndex;
+  const idx = [];
+  for (const reg in regioniData){
+    for (const prov in regioniData[reg]){
+      for (const com in regioniData[reg][prov]){
+        idx.push({reg, prov, com, prezzo: regioniData[reg][prov][com], n: _normComune(com)});
+      }
+    }
+  }
+  _comuneIndex = idx;
+  return idx;
+}
+function setupComuneSearch(regioneSelect, provinciaSelect, comuneSelect){
+  const input = document.getElementById('comuneSearch');
+  const box = document.getElementById('comuneSearchResults');
+  if (!input || !box) return;
+  let active = -1, current = [];
+  function close(){ box.classList.remove('open'); box.innerHTML=''; active=-1; current=[]; }
+  function pick(item){
+    if (!item) return;
+    regioneSelect.value = item.reg; regioneSelect.dispatchEvent(new Event('change'));
+    provinciaSelect.value = item.prov; provinciaSelect.dispatchEvent(new Event('change'));
+    comuneSelect.value = item.com; comuneSelect.dispatchEvent(new Event('change'));
+    input.value = item.com;
+    close();
+  }
+  function render(){
+    if (!current.length){ box.innerHTML = '<div class="search-empty">Nessun comune trovato</div>'; box.classList.add('open'); return; }
+    box.innerHTML = current.map((it,i)=>`
+      <div class="search-item${i===active?' active':''}" data-i="${i}" role="option">
+        <div class="si-main"><span class="si-c">${it.com}</span><span class="si-loc">${it.prov} · ${it.reg}</span></div>
+        <span class="si-pz">${it.prezzo.toLocaleString('it-IT')} €/mq</span>
+      </div>`).join('');
+    box.classList.add('open');
+    box.querySelectorAll('.search-item').forEach(el=>{
+      el.addEventListener('mousedown', e=>{ e.preventDefault(); pick(current[+el.dataset.i]); });
+    });
+  }
+  function search(q){
+    const nq = _normComune(q.trim());
+    if (nq.length < 2){ close(); return; }
+    const idx = buildComuneIndex();
+    const starts = [], contains = [];
+    for (const it of idx){
+      const p = it.n.indexOf(nq);
+      if (p === 0){ if (starts.length < 8) starts.push(it); }
+      else if (p > 0){ if (contains.length < 8) contains.push(it); }
+    }
+    current = starts.concat(contains).slice(0, 8);
+    active = current.length ? 0 : -1;
+    render();
+  }
+  input.addEventListener('input', ()=>search(input.value));
+  input.addEventListener('focus', ()=>{ if (input.value.trim().length >= 2) search(input.value); });
+  input.addEventListener('keydown', e=>{
+    if (!box.classList.contains('open')) return;
+    if (e.key === 'ArrowDown'){ e.preventDefault(); active = Math.min(active+1, current.length-1); render(); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); active = Math.max(active-1, 0); render(); }
+    else if (e.key === 'Enter'){ e.preventDefault(); pick(current[active]); }
+    else if (e.key === 'Escape'){ close(); }
+  });
+  document.addEventListener('click', e=>{ if (!e.target.closest('.comune-search-wrap')) close(); });
+}
 function initLocationSelects() {
   const regioneSelect = document.getElementById('regione');
   const provinciaSelect = document.getElementById('provincia');
@@ -8686,6 +8835,7 @@ function initLocationSelects() {
     }
   });
 
+  setupComuneSearch(regioneSelect, provinciaSelect, comuneSelect);
   if (savedRegione) {
     regioneSelect.dispatchEvent(new Event('change'));
   } else {
@@ -8733,6 +8883,57 @@ function formatEuro(v) {
   return v.toLocaleString('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 }
 
+// Conteggio animato del valore finale (come l'app)
+function animateValue(el, target){
+  if (!el) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !(target > 0)){ el.textContent = formatEuro(target || 0); return; }
+  const dur = 1100, t0 = performance.now();
+  const ease = p => 1 - Math.pow(2, -10 * p); // easeOutExpo
+  let done = false;
+  function frame(now){
+    const p = Math.min((now - t0) / dur, 1);
+    el.textContent = formatEuro(p < 1 ? target * ease(p) : target);
+    if (p < 1) requestAnimationFrame(frame); else done = true;
+  }
+  requestAnimationFrame(frame);
+  // rete di sicurezza: garantisce il valore finale anche se rAF e' sospeso (tab in background)
+  setTimeout(function(){ if (!done) el.textContent = formatEuro(target); }, dur + 120);
+}
+
+// ── RESULT MODE (schermata risultato che sostituisce il wizard) ──
+function buildResultSummary(){
+  const el=document.getElementById('resultSummary'); if(!el) return;
+  const superficie=getVal('superficie');
+  const prezzo=getVal('prezzo_mq')||savedPrezzoMq;
+  const rows=[];
+  if(savedComune) rows.push(['Comune', savedComune+(savedProvincia?` (${savedProvincia})`:'')]);
+  if(savedRegione) rows.push(['Regione', savedRegione]);
+  if(superficie) rows.push(['Superficie', `${superficie} mq`]);
+  if(prezzo) rows.push(['Prezzo al mq', `${Number(prezzo).toLocaleString('it-IT')} €/mq`]);
+  el.innerHTML=rows.map(([k,v])=>`<div class="rs-row"><span class="rs-k">${k}</span><span class="rs-v">${v}</span></div>`).join('');
+}
+function enterResultMode(){
+  const w=document.querySelector('.wizard'); if(w) w.classList.add('result-mode');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function modificaDati(){
+  const w=document.querySelector('.wizard'); if(w) w.classList.remove('result-mode');
+  const p=document.getElementById('resultPanel'); if(p) p.classList.remove('visible');
+  renderCurrentStep();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function nuovaValutazione(){
+  const w=document.querySelector('.wizard'); if(w) w.classList.remove('result-mode');
+  const p=document.getElementById('resultPanel'); if(p) p.classList.remove('visible');
+  for(const k in fieldState) delete fieldState[k];
+  savedRegione=''; savedProvincia=''; savedComune=''; savedPrezzoMq='';
+  currentStep=0;
+  const btn=document.getElementById('btn-report'); if(btn) btn.style.display='none';
+  const warn=document.getElementById('msg-pdf-warning'); if(warn){ warn.style.display='none'; warn.textContent=''; }
+  renderCurrentStep();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function calcolaValore() {
   // Salva l'ultimo step prima di calcolare
   saveCurrentFields();
@@ -8816,10 +9017,12 @@ function calcolaValore() {
 
   // Show result
   const panel = document.getElementById('resultPanel');
-  document.getElementById('risultato').textContent = formatEuro(valore);
+  animateValue(document.getElementById('risultato'), valore);
   const nome = fieldState['nome_proprieta'] || getVal('nome_proprieta') || '';
   document.getElementById('resultProperty').textContent = nome ? `${nome}` : '';
   panel.classList.add('visible');
+  buildResultSummary();
+  enterResultMode();
 
   // PDF / app handling
   if (!navigator.userAgent.toLowerCase().includes('median')) {
