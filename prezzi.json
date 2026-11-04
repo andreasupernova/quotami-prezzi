@@ -8850,11 +8850,15 @@ let savedRegione = '', savedProvincia = '', savedComune = '', savedPrezzoMq = ''
 
 // Dizionario globale: id → valore
 const fieldState = {};
+const fieldText = {};  // etichette leggibili delle tendine (per il report)
 
 // Salva tutti i campi visibili nel dizionario
 function saveCurrentFields() {
   document.querySelectorAll('#fieldsArea input, #fieldsArea select').forEach(el => {
-    if (el.id) fieldState[el.id] = el.value;
+    if (el.id) {
+      fieldState[el.id] = el.value;
+      fieldText[el.id] = (el.tagName === 'SELECT') ? (el.options[el.selectedIndex]?.text || el.value) : el.value;
+    }
   });
 }
 
@@ -9064,7 +9068,9 @@ function scaricaReport() {
     const gruppo = campi.slice(i, i + 4);
     const celle = gruppo.map(([id, nome]) => {
       const el = document.getElementById(id);
-      const val = el ? (el.tagName === 'SELECT' ? el.options[el.selectedIndex]?.text : (el.value || '—')) : '—';
+      let val;
+      if (el) { val = (el.tagName === 'SELECT') ? (el.options[el.selectedIndex]?.text || '—') : (el.value || '—'); }
+      else { val = fieldText[id] || fieldState[id] || '—'; }  // fix: in result-mode i campi non sono nel DOM
       const bg = Math.floor(i/4) % 2 === 0 ? '#0f1110' : '#0a0b0a';
       return `<td style="width:25%;padding:7px 10px;border-right:1px solid rgba(56,242,60,.08);background:${bg}">
         <div style="font-size:9px;color:#a1a1aa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${nome}</div>
