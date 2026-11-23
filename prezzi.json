@@ -9000,14 +9000,18 @@ function calcolaValore() {
   }
   let valore = prezzoMq * superficie;
 
-  valore += parseInt(getVal('posto_auto') || 0) * 18000;
-  valore += parseInt(getVal('garage') || 0) * 30000;
+  // Correzioni del 23/11/2026, identiche nel motore dell'app (CalculationEngine.swift):
+  // 1) posto auto e garage valgono pieni dal prezzo medio nazionale (1.200 €/mq) in su, in proporzione sotto;
+  // 2) la ristrutturazione non toglie più del 30% del valore (15% se parziale).
+  const scalaParcheggi = Math.min(1, prezzoMq / 1200);
+  valore += parseInt(getVal('posto_auto') || 0) * 18000 * scalaParcheggi;
+  valore += parseInt(getVal('garage') || 0) * 30000 * scalaParcheggi;
 
   if (isYes('vista_mare')) valore *= 1.18; else valore *= 0.88;
 
   const stato = getVal('ristrutturare');
-  if (stato === 'si') valore -= superficie * 1000;
-  else if (stato === 'parzialmente') valore -= superficie * 500;
+  if (stato === 'si') valore -= Math.min(superficie * 1000, valore * 0.30);
+  else if (stato === 'parzialmente') valore -= Math.min(superficie * 500, valore * 0.15);
 
   let piano = parseInt(getVal('piano') || 0);
   if (piano >= 2 && !isYes('ascensore')) {
